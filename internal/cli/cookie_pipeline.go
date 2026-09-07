@@ -32,6 +32,14 @@ func readFilteredCookies(dbPath string, blocklist *config.Blocklist, key []byte,
 	if err != nil {
 		return nil, readStats{}, fmt.Errorf("read cookies: %w", err)
 	}
+	filtered, stats := filterCookies(all, blocklist, skipDBSC, now)
+	return filtered, stats, nil
+}
+
+// filterCookies applies the common policy and DBSC classification to cookie
+// records regardless of whether they came from Chrome SQLite or a live CDP
+// endpoint. The source remains fail-closed when the reader itself fails.
+func filterCookies(all []chrome.Cookie, blocklist *config.Blocklist, skipDBSC bool, now time.Time) ([]chrome.Cookie, readStats) {
 	st := readStats{totalRead: len(all)}
 
 	all, st.droppedHosts = protocol.NewBlocklistMatcher(blocklist).Filter(all)
@@ -46,5 +54,5 @@ func readFilteredCookies(dbPath string, blocklist *config.Blocklist, key []byte,
 		skipped: len(dbscRes.Skipped),
 		sample:  dbscSampleReasons(dbscRes),
 	}
-	return all, st, nil
+	return all, st
 }
