@@ -41,6 +41,44 @@ security:
 	}
 }
 
+func TestLoadSourceCDPSourceParsesAndRejectsUnsafeEndpoint(t *testing.T) {
+	t.Run("loopback endpoint", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "source.yaml", `
+sink:
+  url: http://example.test:9999/sync
+peer:
+  hostname: sink
+cdp_source:
+  enabled: true
+  endpoint: http://127.0.0.1:9230
+`)
+		cfg, err := LoadSource(dir)
+		if err != nil {
+			t.Fatalf("LoadSource: %v", err)
+		}
+		if !cfg.CDPSource.Enabled || cfg.CDPSource.Endpoint != "http://127.0.0.1:9230" {
+			t.Fatalf("CDPSource = %+v", cfg.CDPSource)
+		}
+	})
+
+	t.Run("non-loopback endpoint", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "source.yaml", `
+sink:
+  url: http://example.test:9999/sync
+peer:
+  hostname: sink
+cdp_source:
+  enabled: true
+  endpoint: http://100.91.16.115:9230
+`)
+		if _, err := LoadSource(dir); err == nil {
+			t.Fatal("LoadSource accepted a non-loopback cdp_source endpoint")
+		}
+	})
+}
+
 func TestLoadSourceBrowserBlockParsesAndDerivesPath(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "source.yaml", `
