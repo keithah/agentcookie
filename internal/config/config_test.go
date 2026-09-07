@@ -97,6 +97,23 @@ cdp_source:
 	})
 }
 
+func TestLoadSourceLocalAcceptsCDPSource(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "source.yaml", `
+cdp_source:
+  enabled: true
+  endpoint: http://127.0.0.1:9230
+`)
+
+	cfg, err := LoadSourceLocal(dir)
+	if err != nil {
+		t.Fatalf("LoadSourceLocal CDP source: %v", err)
+	}
+	if !cfg.CDPSource.Enabled {
+		t.Fatal("LoadSourceLocal did not retain cdp_source")
+	}
+}
+
 func TestLoadSourceBrowserBlockParsesAndDerivesPath(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "source.yaml", `
@@ -413,15 +430,19 @@ chrome:
 		}
 	})
 
-	t.Run("rejects CDP source for SQLite-reading local commands", func(t *testing.T) {
+	t.Run("accepts CDP source for CDP-capable local commands", func(t *testing.T) {
 		dir := t.TempDir()
 		writeFile(t, dir, "source.yaml", `
 cdp_source:
   enabled: true
   endpoint: http://127.0.0.1:9230
 `)
-		if _, err := LoadSourceLocal(dir); err == nil {
-			t.Fatal("LoadSourceLocal should reject a CDP-only source configuration")
+		cfg, err := LoadSourceLocal(dir)
+		if err != nil {
+			t.Fatalf("LoadSourceLocal CDP source: %v", err)
+		}
+		if !cfg.CDPSource.Enabled {
+			t.Fatal("LoadSourceLocal did not retain CDP source configuration")
 		}
 	})
 }

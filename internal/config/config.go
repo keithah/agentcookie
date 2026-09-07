@@ -254,9 +254,6 @@ func LoadSourceLocal(dir string) (*SourceConfig, error) {
 			return nil, err
 		}
 	}
-	if cfg.CDPSource.Enabled {
-		return nil, fmt.Errorf("%s: cdp_source is only supported by the source command; SQLite-reading local commands are disabled", path)
-	}
 	if err := resolveSourcePaths(path, &cfg); err != nil {
 		return nil, err
 	}

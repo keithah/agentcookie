@@ -15,7 +15,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/mvanhorn/agentcookie/internal/cdpsource"
 	"github.com/mvanhorn/agentcookie/internal/chrome"
 	"github.com/mvanhorn/agentcookie/internal/chromedirsync"
 	"github.com/mvanhorn/agentcookie/internal/cli/httpserver"
@@ -42,10 +41,6 @@ var (
 // wires it to tsclient.ResolveSinkURL; tests can override it to inject
 // specific resolution behaviors (e.g., ErrAmbiguousPeer).
 var resolveSinkURL = tsclient.ResolveSinkURL
-
-// readCDPSource is replaceable by tests; production reads an existing browser
-// through CDP and never opens its SQLite cookie database.
-var readCDPSource = cdpsource.Read
 
 // loadSecretsPayload is replaceable by tests. CDP-source profiles are
 // cookie-only, so they must not inherit process-home secrets bus state.
