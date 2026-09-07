@@ -239,6 +239,10 @@ func sourceStatePath(cdpSource bool, configDir, home string) string {
 	return state.SourcePath(home)
 }
 
+func sourceStatePathForConfig(cfg *config.SourceConfig, configDir, home string) string {
+	return sourceStatePath(cfg != nil && cfg.CDPSource.Enabled, configDir, home)
+}
+
 const cdpSourcePollInterval = 10 * time.Second
 
 // runCDPSourceWatch polls the browser's CDP jar rather than watching encrypted
