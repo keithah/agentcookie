@@ -113,6 +113,12 @@ func TestCDPSourceStatePathIsScopedToConfigDirectory(t *testing.T) {
 	if got, want := sourceStatePath(true, configDir, "/irrelevant"), filepath.Join(configDir, "state", "source-state.json"); got != want {
 		t.Fatalf("CDP source state path = %q, want %q", got, want)
 	}
+	if got, want := sourceStatePathForConfig(&config.SourceConfig{CDPSource: config.CDPSourceRef{Enabled: true}}, configDir, "/irrelevant"), filepath.Join(configDir, "state", "source-state.json"); got != want {
+		t.Fatalf("configured CDP source state path = %q, want %q", got, want)
+	}
+	if got, want := sourceStatePathForConfig(nil, configDir, "/home/test"), state.SourcePath("/home/test"); got != want {
+		t.Fatalf("default source state path = %q, want %q", got, want)
+	}
 }
 
 func TestSourcePushCDPSourceAppliesAllowlistWithoutSQLiteFallback(t *testing.T) {
