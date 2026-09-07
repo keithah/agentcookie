@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/mvanhorn/agentcookie/internal/cdpsource"
 	"github.com/mvanhorn/agentcookie/internal/chrome"
 	"github.com/mvanhorn/agentcookie/internal/config"
 	"github.com/mvanhorn/agentcookie/internal/protocol"
@@ -15,6 +17,23 @@ type readStats struct {
 	totalDropped int
 	droppedHosts map[string]int
 	dbsc         dbscSummary
+}
+
+var readCDPSource = cdpsource.Read
+
+// readConfiguredCookies reads cookies from the configured source without
+// falling back between CDP and SQLite. CDP profiles never invoke browser
+// discovery, Keychain, or SQLite; file-based profiles retain the legacy path.
+func readConfiguredCookies(ctx context.Context, cfg *config.SourceConfig, blocklist *config.Blocklist, key []byte, skipDBSC bool, now time.Time) ([]chrome.Cookie, readStats, error) {
+	if cfg.CDPSource.Enabled {
+		all, err := readCDPSource(ctx, cfg.CDPSource.Endpoint)
+		if err != nil {
+			return nil, readStats{}, fmt.Errorf("read cookies from cdp source: %w", err)
+		}
+		cookies, stats := filterCookies(all, blocklist, skipDBSC, now)
+		return cookies, stats, nil
+	}
+	return readFilteredCookies(cfg.Chrome.DBPath, blocklist, key, skipDBSC, now)
 }
 
 // readFilteredCookies reads every cookie from the browser's Cookies DB,

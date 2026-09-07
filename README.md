@@ -184,9 +184,10 @@ The endpoint must be a bare `http` origin using a **literal loopback IP**
 (`127.0.0.1` or `::1`); hostnames such as `localhost` are rejected so a hosts
 or DNS override cannot redirect browser-control access off-host. Tailnet, LAN,
 public, credential-bearing, and path/query endpoints are rejected. CDP-source
-configuration is exclusive: do not set `chrome.db_path` or `browser`, and
-SQLite-reading local commands (`export`, `agent-sync`, and `cmux-sync`) reject
-it rather than falling back to another profile. `source --once` reads once;
+configuration is exclusive: do not set `chrome.db_path` or `browser`.
+`export`, `agent-sync`, and `cmux-sync` also read from the configured CDP
+endpoint in this mode, without falling back to another profile; their watch
+modes poll rather than watching a SQLite file. `source --once` reads once;
 `source --watch` polls every 10 seconds because CDP does not provide a
 cookie-change event. CDP-source mode carries cookies only: it deliberately does
 not scrape Local Storage or IndexedDB from an on-disk profile as a fallback.
