@@ -254,6 +254,9 @@ func LoadSourceLocal(dir string) (*SourceConfig, error) {
 			return nil, err
 		}
 	}
+	if cfg.CDPSource.Enabled {
+		return nil, fmt.Errorf("%s: cdp_source is only supported by the source command; SQLite-reading local commands are disabled", path)
+	}
 	if err := resolveSourcePaths(path, &cfg); err != nil {
 		return nil, err
 	}
@@ -267,6 +270,9 @@ func resolveSourcePaths(path string, cfg *SourceConfig) error {
 	if cfg.CDPSource.Enabled {
 		if err := cdpsource.ValidateEndpoint(cfg.CDPSource.Endpoint); err != nil {
 			return fmt.Errorf("%s: %w", path, err)
+		}
+		if cfg.Chrome.DBPath != "" || cfg.Browser.Name != "" || cfg.Browser.Profile != "" {
+			return fmt.Errorf("%s: cdp_source cannot be combined with chrome.db_path or browser configuration", path)
 		}
 		return nil
 	}

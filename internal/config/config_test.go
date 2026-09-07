@@ -77,6 +77,24 @@ cdp_source:
 			t.Fatal("LoadSource accepted a non-loopback cdp_source endpoint")
 		}
 	})
+
+	t.Run("rejects SQLite browser configuration", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "source.yaml", `
+sink:
+  url: http://example.test:9999/sync
+peer:
+  hostname: sink
+chrome:
+  db_path: /private/Cookies
+cdp_source:
+  enabled: true
+  endpoint: http://127.0.0.1:9230
+`)
+		if _, err := LoadSource(dir); err == nil {
+			t.Fatal("LoadSource accepted cdp_source combined with chrome.db_path")
+		}
+	})
 }
 
 func TestLoadSourceBrowserBlockParsesAndDerivesPath(t *testing.T) {
@@ -392,6 +410,18 @@ chrome:
 `)
 		if _, err := LoadSource(dir); err == nil {
 			t.Fatal("LoadSource should still require sink.url")
+		}
+	})
+
+	t.Run("rejects CDP source for SQLite-reading local commands", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "source.yaml", `
+cdp_source:
+  enabled: true
+  endpoint: http://127.0.0.1:9230
+`)
+		if _, err := LoadSourceLocal(dir); err == nil {
+			t.Fatal("LoadSourceLocal should reject a CDP-only source configuration")
 		}
 	})
 }

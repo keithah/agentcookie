@@ -41,12 +41,9 @@ func ValidateEndpoint(raw string) error {
 	if host == "" {
 		return fmt.Errorf("cdp source endpoint host is required")
 	}
-	if strings.EqualFold(host, "localhost") {
-		return nil
-	}
 	ip := net.ParseIP(host)
 	if ip == nil || !ip.IsLoopback() {
-		return fmt.Errorf("cdp source endpoint must be loopback, got %q", host)
+		return fmt.Errorf("cdp source endpoint must use a literal loopback IP, got %q", host)
 	}
 	return nil
 }
