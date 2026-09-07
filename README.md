@@ -180,12 +180,16 @@ cdp_source:
   endpoint: http://127.0.0.1:9230
 ```
 
-The endpoint must be a bare `http` loopback origin (`localhost`, `127.0.0.1`,
-or `::1`). Tailnet, LAN, public, credential-bearing, and path/query endpoints
-are rejected. `source --once` reads once; `source --watch` polls every 10
-seconds because CDP does not provide a cookie-change event. CDP-source mode
-carries cookies only: it deliberately does not scrape Local Storage or
-IndexedDB from an on-disk profile as a fallback.
+The endpoint must be a bare `http` origin using a **literal loopback IP**
+(`127.0.0.1` or `::1`); hostnames such as `localhost` are rejected so a hosts
+or DNS override cannot redirect browser-control access off-host. Tailnet, LAN,
+public, credential-bearing, and path/query endpoints are rejected. CDP-source
+configuration is exclusive: do not set `chrome.db_path` or `browser`, and
+SQLite-reading local commands (`export`, `agent-sync`, and `cmux-sync`) reject
+it rather than falling back to another profile. `source --once` reads once;
+`source --watch` polls every 10 seconds because CDP does not provide a
+cookie-change event. CDP-source mode carries cookies only: it deliberately does
+not scrape Local Storage or IndexedDB from an on-disk profile as a fallback.
 
 ### Attach to the existing Chrome (or start one as fallback)
 
