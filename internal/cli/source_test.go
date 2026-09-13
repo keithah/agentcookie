@@ -164,8 +164,10 @@ domains:
 
 func TestSourcePushEmptyCycleRecordsHealthySourceState(t *testing.T) {
 	fx := newSourcePushFixture(t, nil)
+	statePath := filepath.Join(t.TempDir(), "source-state.json")
+	stateWriter := state.NewWriter(statePath)
 
-	n, err := fx.push()
+	n, err := pushWithFreshBlocklist(context.Background(), fx.cfg, fx.key, false, false, false, fx.srcState, stateWriter)
 	if err != nil {
 		t.Fatalf("empty push: %v", err)
 	}
@@ -187,14 +189,32 @@ func TestSourcePushEmptyCycleRecordsHealthySourceState(t *testing.T) {
 	if got := fx.srcState.TotalFailures; got != 0 {
 		t.Errorf("TotalFailures = %d, want 0", got)
 	}
+	persisted, err := state.LoadSource(statePath)
+	if err != nil {
+		t.Fatalf("load persisted source state: %v", err)
+	}
+	if persisted == nil {
+		t.Fatal("successful empty cycle did not persist source health")
+	}
+	if got := persisted.TotalPushes; got != 1 {
+		t.Errorf("persisted TotalPushes = %d, want 1", got)
+	}
+	if persisted.LastPush.IsZero() {
+		t.Error("persisted LastPush should be recorded after a successful empty cycle")
+	}
+	if got := persisted.LastPushCount; got != 0 {
+		t.Errorf("persisted LastPushCount = %d, want 0", got)
+	}
 }
 
 func TestSourcePushDryRunDoesNotRecordSourceHealth(t *testing.T) {
 	fx := newSourcePushFixture(t, []chrome.Cookie{
 		{HostKey: ".example.com", Name: "session", Value: "value", Path: "/"},
 	})
+	statePath := filepath.Join(t.TempDir(), "source-state.json")
+	stateWriter := state.NewWriter(statePath)
 
-	n, err := pushWithFreshBlocklist(context.Background(), fx.cfg, fx.key, true, false, false, fx.srcState, nil)
+	n, err := pushWithFreshBlocklist(context.Background(), fx.cfg, fx.key, true, false, false, fx.srcState, stateWriter)
 	if err != nil {
 		t.Fatalf("dry-run: %v", err)
 	}
@@ -209,6 +229,19 @@ func TestSourcePushDryRunDoesNotRecordSourceHealth(t *testing.T) {
 	}
 	if !fx.srcState.LastPush.IsZero() {
 		t.Fatal("dry-run should not update LastPush")
+	}
+	persisted, err := state.LoadSource(statePath)
+	if err != nil {
+		t.Fatalf("load dry-run state: %v", err)
+	}
+	if persisted == nil {
+		t.Fatal("dry-run should persist its non-health state envelope")
+	}
+	if got := persisted.TotalPushes; got != 0 {
+		t.Errorf("persisted dry-run TotalPushes = %d, want 0", got)
+	}
+	if !persisted.LastPush.IsZero() {
+		t.Errorf("persisted dry-run should not update LastPush, got %s", persisted.LastPush)
 	}
 }
 

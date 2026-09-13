@@ -796,11 +796,17 @@ func renderSourceYAMLSinks(cfg *config.SourceConfig, sinks []config.SinkTarget) 
 		b.WriteString("security:\n")
 		fmt.Fprintf(&b, "  shared_secret: %s\n", cfg.Security.SharedSecret)
 	}
-	if cfg.Cmux.Enabled {
+	if cfg.Cmux.Enabled || cfg.Cmux.CmuxPath != "" || len(cfg.Cmux.DomainFilter) > 0 {
 		b.WriteString("cmux:\n")
 		fmt.Fprintf(&b, "  enabled: %v\n", cfg.Cmux.Enabled)
 		if cfg.Cmux.CmuxPath != "" {
 			fmt.Fprintf(&b, "  cmux_path: %s\n", cfg.Cmux.CmuxPath)
+		}
+		if len(cfg.Cmux.DomainFilter) > 0 {
+			b.WriteString("  domain_filter:\n")
+			for _, pattern := range cfg.Cmux.DomainFilter {
+				fmt.Fprintf(&b, "    - %q\n", pattern)
+			}
 		}
 	}
 	return b.String()
