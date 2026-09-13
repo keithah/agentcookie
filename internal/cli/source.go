@@ -353,6 +353,15 @@ func recordSourcePushResult(
 			srcState.LastPush = now
 		}
 	}
+	// A successful cycle with no eligible cookies or secrets has no per-sink
+	// transport result, but it is still a healthy source read. pushOnce uses a
+	// non-nil empty slice for that case; nil is a dry-run and intentionally
+	// leaves the durable health state unchanged.
+	if err == nil && results != nil && len(results) == 0 {
+		srcState.TotalPushes++
+		srcState.LastPushCount = 0
+		srcState.LastPush = now
+	}
 	srcState.LastDBSCWarned = dbsc.warned
 	srcState.LastDBSCSkipped = dbsc.skipped
 	srcState.LastDBSCSample = dbsc.sample
@@ -475,9 +484,16 @@ func pushOnce(
 		"posted":               false,
 	}
 
-	if dryRun || (len(all) == 0 && secretsCLICount == 0) {
+	if dryRun {
 		_ = emit(result, fmt.Sprintf("agentcookie source: %d cookies after cookie policy (%s), %d secrets clis (dry-run=%v)%s\n", len(all), blocklist.CookiePolicySummary(), secretsCLICount, dryRun, dbscNote(dbsc)))
 		return nil, dbsc, nil
+	}
+	if len(all) == 0 && secretsCLICount == 0 {
+		_ = emit(result, fmt.Sprintf("agentcookie source: %d cookies after cookie policy (%s), %d secrets clis (dry-run=%v)%s\n", len(all), blocklist.CookiePolicySummary(), secretsCLICount, dryRun, dbscNote(dbsc)))
+		// A non-nil empty result records that this was a successful source
+		// cycle with no delivery attempt. nil remains reserved for dry-runs,
+		// which must not make source health look current.
+		return []sinkResult{}, dbsc, nil
 	}
 
 	// v0.7: pack Local Storage and IndexedDB alongside cookies from the

@@ -162,6 +162,56 @@ domains:
 	}
 }
 
+func TestSourcePushEmptyCycleRecordsHealthySourceState(t *testing.T) {
+	fx := newSourcePushFixture(t, nil)
+
+	n, err := fx.push()
+	if err != nil {
+		t.Fatalf("empty push: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("empty push count = %d, want 0", n)
+	}
+	if got := fx.batchCount(); got != 0 {
+		t.Fatalf("empty push should not POST, got %d requests", got)
+	}
+	if got := fx.srcState.TotalPushes; got != 1 {
+		t.Errorf("TotalPushes = %d, want 1 after a successful empty cycle", got)
+	}
+	if fx.srcState.LastPush.IsZero() {
+		t.Fatal("LastPush should be recorded after a successful empty cycle")
+	}
+	if got := fx.srcState.LastPushCount; got != 0 {
+		t.Errorf("LastPushCount = %d, want 0", got)
+	}
+	if got := fx.srcState.TotalFailures; got != 0 {
+		t.Errorf("TotalFailures = %d, want 0", got)
+	}
+}
+
+func TestSourcePushDryRunDoesNotRecordSourceHealth(t *testing.T) {
+	fx := newSourcePushFixture(t, []chrome.Cookie{
+		{HostKey: ".example.com", Name: "session", Value: "value", Path: "/"},
+	})
+
+	n, err := pushWithFreshBlocklist(context.Background(), fx.cfg, fx.key, true, false, false, fx.srcState, nil)
+	if err != nil {
+		t.Fatalf("dry-run: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("dry-run push count = %d, want 0", n)
+	}
+	if got := fx.batchCount(); got != 0 {
+		t.Fatalf("dry-run should not POST, got %d requests", got)
+	}
+	if got := fx.srcState.TotalPushes; got != 0 {
+		t.Errorf("dry-run TotalPushes = %d, want 0", got)
+	}
+	if !fx.srcState.LastPush.IsZero() {
+		t.Fatal("dry-run should not update LastPush")
+	}
+}
+
 func TestSourcePushMalformedBlocklistSkipsPushAndRecordsFailure(t *testing.T) {
 	fx := newSourcePushFixture(t, []chrome.Cookie{
 		{HostKey: ".blocked.com", Name: "blocked", Value: "b", Path: "/"},

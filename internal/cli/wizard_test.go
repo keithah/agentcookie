@@ -569,6 +569,38 @@ func TestBuildAddSinkYAMLMigratesLegacyAndAppends(t *testing.T) {
 	}
 }
 
+func TestBuildAddSinkYAMLPreservesCDPSource(t *testing.T) {
+	cfg := &config.SourceConfig{
+		Sinks: []config.SinkTarget{{URL: "http://first.test:9999/sync", Peer: "first"}},
+		CDPSource: config.CDPSourceRef{
+			Enabled:  true,
+			Endpoint: "http://127.0.0.1:9222",
+		},
+	}
+	yamlBody, err := buildAddSinkYAML(cfg, "http://second.test:9999/sync", "second")
+	if err != nil {
+		t.Fatalf("buildAddSinkYAML: %v", err)
+	}
+	if strings.Contains(yamlBody, "\nchrome:\n") || strings.Contains(yamlBody, "\nbrowser:\n") {
+		t.Fatalf("CDP source render must not add SQLite/browser source settings:\n%s", yamlBody)
+	}
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "source.yaml"), []byte(yamlBody), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	loaded, err := config.LoadSource(dir)
+	if err != nil {
+		t.Fatalf("LoadSource on rendered CDP YAML: %v\n%s", err, yamlBody)
+	}
+	if !loaded.CDPSource.Enabled || loaded.CDPSource.Endpoint != "http://127.0.0.1:9222" {
+		t.Fatalf("CDP source changed during add-sink: %+v", loaded.CDPSource)
+	}
+	if got := loaded.ResolvedSinks(); len(got) != 2 || got[0].Peer != "first" || got[1].Peer != "second" {
+		t.Fatalf("rendered sinks = %+v, want first and second", got)
+	}
+}
+
 func TestBuildAddSinkYAMLRejectsDuplicatePeer(t *testing.T) {
 	cfg := &config.SourceConfig{
 		Sinks: []config.SinkTarget{{URL: "http://a.test/sync", Peer: "alpha"}},
