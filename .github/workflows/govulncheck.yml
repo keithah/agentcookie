@@ -17,7 +17,7 @@ permissions:
 jobs:
   govulncheck:
     name: govulncheck
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

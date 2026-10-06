@@ -11,7 +11,7 @@ permissions:
 jobs:
   # Build Linux binaries on Ubuntu using .goreleaser.linux.yaml
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ vars.RELEASE_CI_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
 
   # Build darwin binaries on macOS (codesigning requires macOS)
   build-darwin:
-    runs-on: macos-latest
+    runs-on: tenki-macos-26-small
     if: ${{ vars.RELEASE_CI_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
 
   # Publish release after both builds complete
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     needs: [build-linux, build-darwin]
     if: ${{ vars.RELEASE_CI_ENABLED == 'true' }}
     steps:
